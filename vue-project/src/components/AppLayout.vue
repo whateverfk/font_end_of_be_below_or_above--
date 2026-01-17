@@ -86,9 +86,16 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { 
-  Camera, LayoutDashboard, Bell, RefreshCw, 
-  User, LogOut, ChevronLeft, Menu, Monitor
+import {
+  Camera,
+  LayoutDashboard,
+  Bell,
+  RefreshCw,
+  User,
+  LogOut,
+  ChevronLeft,
+  Menu,
+  Monitor,
 } from 'lucide-vue-next'
 
 const route = useRoute()
