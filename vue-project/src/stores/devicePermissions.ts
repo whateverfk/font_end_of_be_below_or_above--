@@ -77,11 +77,17 @@ export const useDevicePermissionsStore = defineStore('devicePermissions', () => 
     }
 
     async function updatePermissions(deviceId: number | string, userId: number, perms: UserPermissions) {
+
         loading.value.update = true
+        const data = {
+            device_id: deviceId,
+            device_user_id: userId,
+            permissions: perms
+        }
         try {
             await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/user/${userId}/permissions`, {
                 method: 'PUT',
-                body: JSON.stringify(perms)
+                body: JSON.stringify(data)
             })
         } finally {
             loading.value.update = false

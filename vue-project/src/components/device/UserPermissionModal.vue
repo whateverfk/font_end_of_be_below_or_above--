@@ -5,7 +5,7 @@
       <div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
         <div>
           <h3 class="text-xl font-black text-zinc-100 uppercase tracking-tight">User Permissions</h3>
-          <p class="text-sm text-zinc-500 font-mono mt-1" v-if="user">User: {{ user.user_name }} (ID: {{ user.id }})</p>
+          <p class="text-sm text-zinc-500 font-mono mt-1" v-if="user">User: {{ user.user_name }} </p>
         </div>
         <button @click="close" class="p-2 hover:bg-white/10 rounded-lg text-zinc-400 hover:text-white transition-colors">
           <X class="w-6 h-6" />
@@ -18,12 +18,12 @@
               <Loader2 class="w-10 h-10 animate-spin mb-4" />
               <span>Loading permissions...</span>
           </div>
-          
+
           <div v-else-if="localPerms" class="flex-1 flex overflow-hidden">
               <!-- Scope Tabs -->
               <div class="w-48 border-r border-white/10 bg-black/20 p-2 space-y-1">
-                  <button 
-                    v-for="scope in (['local', 'remote'] as const)" 
+                  <button
+                    v-for="scope in (['local', 'remote'] as const)"
                     :key="scope"
                     @click="activeScope = scope"
                     class="w-full text-left px-4 py-3 rounded-xl transition-all font-bold uppercase tracking-wider text-xs flex items-center justify-between"
@@ -37,16 +37,16 @@
               <!-- Permission Matrix -->
               <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
                   <div class="grid grid-cols-1 gap-4">
-                      <div 
-                        v-for="permKey in permStore.SCOPE_PERMISSION_WHITELIST[activeScope]" 
+                      <div
+                        v-for="permKey in permStore.SCOPE_PERMISSION_WHITELIST[activeScope]"
                         :key="permKey"
                         class="p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
                       >
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-3">
-                                <input 
-                                    type="checkbox" 
-                                    :checked="isGlobalChecked(permKey)" 
+                                <input
+                                    type="checkbox"
+                                    :checked="isGlobalChecked(permKey)"
                                     @change="toggleGlobal(permKey)"
                                     class="w-5 h-5 accent-teal-500 rounded cursor-pointer"
                                 >
@@ -55,10 +55,10 @@
                                     <p class="text-[10px] text-zinc-500 font-mono">{{ permKey }}</p>
                                 </div>
                             </div>
-                            
+
                             <!-- Channel Expansion -->
                             <div v-if="permStore.CHANNEL_BASED_PERMISSIONS.includes(permKey)">
-                                <button 
+                                <button
                                     @click="toggleExpand(permKey)"
                                     class="text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-zinc-300 flex items-center gap-2 transition-colors"
                                 >
@@ -72,8 +72,8 @@
                         <!-- Channel Selection Grid -->
                         <div v-if="expandedPerms.includes(permKey)" class="mt-4 pt-4 border-t border-white/5 pl-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                              <label v-for="channel in channels" :key="channel.id" class="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer hover:text-zinc-200">
-                                 <input 
-                                    type="checkbox" 
+                                 <input
+                                    type="checkbox"
                                     :checked="isChannelChecked(permKey, channel.id)"
                                     @change="toggleChannel(permKey, channel.id)"
                                     class="accent-teal-500 rounded-sm"
@@ -162,13 +162,13 @@ function toggleGlobal(permKey: string) {
     const current = !!localPerms.value[activeScope.value].global[permKey]
     const next = !current
     localPerms.value[activeScope.value].global[permKey] = next
-    
+
     // If unchecking global, clear all channels for this permission
     if (!next) {
         localPerms.value[activeScope.value].channels[permKey] = []
     } else {
         // If checking global and it's a channel-based perm, optionally check all?
-        // User said "only need 1 channel then it will be checked", 
+        // User said "only need 1 channel then it will be checked",
         // but if they click global directly, let's at least keep global checked.
     }
 }
@@ -196,13 +196,13 @@ function isChannelChecked(permKey: string, channelId: number) {
 function toggleChannel(permKey: string, channelId: number) {
     if (!localPerms.value) return
     let list = localPerms.value[activeScope.value].channels[permKey] || []
-    
+
     if (list.includes(channelId)) {
         list = list.filter(id => id !== channelId)
     } else {
         list.push(channelId)
     }
-    
+
     localPerms.value[activeScope.value].channels[permKey] = list
 
     // If any channel is checked, ensure the global checkbox for this permission is ALSO checked
