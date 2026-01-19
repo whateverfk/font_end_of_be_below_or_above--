@@ -1,75 +1,122 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { API_CONFIG } from '../config'
+import { apiFetch } from '@/stores/utils/apiFetch'
 
 export const useDeviceStore = defineStore('devices', () => {
-    const devices = ref([
-        { id: 1, ipNvr: '192.168.1.10', ipWeb: '192.168.1.100', userName: 'admin', brand: 'HIKVision', status: true },
-        { id: 2, ipNvr: '192.168.1.11', ipWeb: '192.168.1.101', userName: 'admin', brand: 'HIKVision', status: false }
-    ])
+  const devices = ref<any[]>([])
 
-    // --- REAL API: FETCH ALL DEVICES ---
-    /*
-    async function fetchDevices() {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/devices`)
-        devices.value = await response.json()
+  // =========================
+  // MAP API -> FRONTEND MODEL
+  // =========================
+  function mapDeviceFromApi(d: any) {
+    return {
+      id: d.id,
+      ipWeb: d.ip_web,
+      ipNvr: d.ip_nvr,
+      username: d.username,
+      brand: d.brand,
+      status: d.is_checked,
     }
-    */
+  }
 
-    async function addDevice(device: any) {
-        // --- REAL API: POST NEW DEVICE ---
-        /*
-        const response = await fetch(`${API_CONFIG.BASE_URL}/devices`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(device)
-        })
-        const newDevice = await response.json()
-        devices.value.push(newDevice)
-        return newDevice
-        */
+  // =========================
+  // GET: /api/devices
+  // =========================
+  async function fetchDevices() {
+    const response = await apiFetch(`${API_CONFIG.BASE_URL}/api/devices`)
+    devices.value = response.map(mapDeviceFromApi)
+  }
 
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const newDevice = { ...device, id: Date.now(), status: true }
-                devices.value.push(newDevice)
-                resolve(newDevice)
-            }, 500)
-        })
+  // =========================
+  // GET: /api/devices/active
+  // =========================
+  async function fetchActiveDevices() {
+    const response = await apiFetch(`${API_CONFIG.BASE_URL}/api/devices/active`)
+    devices.value = response.map(mapDeviceFromApi)
+  }
+
+  // =========================
+  // POST: /api/devices/test-connection
+  // =========================
+  async function testConnection(data: any) {
+    const payload = {
+      ip_web: data.ipWeb,
+      username: data.username,
+      password: data.password,
+      brand: data.brand,
     }
+    return await apiFetch(`${API_CONFIG.BASE_URL}/api/devices/test-connection`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
 
-    async function updateDevice(id: number | string, data: any) {
-        // --- REAL API: PUT UPDATED DATA ---
-        /*
-        const response = await fetch(`${API_CONFIG.BASE_URL}/devices/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        })
-        const updated = await response.json()
-        const idx = devices.value.findIndex(d => d.id === id)
-        if (idx !== -1) devices.value[idx] = updated
-        return updated
-        */
-
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const index = devices.value.findIndex(d => d.id === id)
-                if (index !== -1) {
-                    devices.value[index] = { ...devices.value[index], ...data }
-                }
-                resolve(devices.value[index])
-            }, 300)
-        })
-    }
-
-    async function deleteDevice(id: number | string) {
-        // --- REAL API: DELETE ---
-        /*
-        await fetch(`${API_CONFIG.BASE_URL}/devices/${id}`, { method: 'DELETE' })
-        */
-        devices.value = devices.value.filter(d => d.id !== id)
+  // =========================
+  // POST: /api/devices
+  // =========================
+  async function addDevice(device: any) {
+    const payload = {
+      ip_web: device.ipWeb,
+      ip_nvr: device.ipNvr,
+      username: device.username,
+      password: device.password,
+      brand: device.brand,
+      is_checked: device.status ?? true,
     }
 
-    return { devices, addDevice, updateDevice, deleteDevice }
+    const response = await apiFetch(`${API_CONFIG.BASE_URL}/api/devices`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+
+    await fetchDevices()
+    return response
+  }
+
+  // =========================
+  // PUT: /api/devices/{id}
+  // =========================
+  async function updateDevice(id: number | string, data: any) {
+    // Tìm device hiện tại để lấy các giá trị cũ nếu thiếu (Dùng loose equality ==)
+    const existing = devices.value.find((d) => d.id == id)
+
+    const payload: any = {}
+    payload.ip_web = data.ipWeb ?? existing?.ipWeb
+    payload.ip_nvr = data.ipNvr ?? existing?.ipNvr
+    payload.username = data.username ?? existing?.username
+    payload.brand = data.brand ?? existing?.brand
+
+    // is_checked xử lý đặc biệt vì nó là boolean
+    if (data.status !== undefined) payload.is_checked = data.status
+    else payload.is_checked = existing?.status
+
+    // Password chỉ gửi nếu có
+    if (data.password) payload.password = data.password
+
+    await apiFetch(`${API_CONFIG.BASE_URL}/api/devices/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+
+    await fetchDevices()
+  }
+
+  // =========================
+  // DELETE: /api/devices/{id}
+  // =========================
+  async function deleteDevice(id: number | string) {
+    await apiFetch(`${API_CONFIG.BASE_URL}/api/devices/${id}`, { method: 'DELETE' })
+    await fetchDevices()
+  }
+
+  return {
+    devices,
+    fetchDevices,
+    fetchActiveDevices,
+    testConnection,
+    addDevice,
+    updateDevice,
+    deleteDevice,
+  }
 })
