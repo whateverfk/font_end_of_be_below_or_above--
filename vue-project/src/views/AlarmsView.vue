@@ -44,39 +44,42 @@
           >
             <div
               class="absolute inset-0 bg-rose-500/10 animate-pulse"
-              v-if="alarm.type === 'Motion Detection'"
+              v-if="alarm.event === 'Motion Detection'"
             ></div>
-            <Zap v-if="alarm.type === 'Line Crossing'" class="w-6 h-6 text-amber-400" />
-            <Activity v-else-if="alarm.type === 'Motion Detection'" class="w-6 h-6 text-rose-400" />
+            <Zap v-if="alarm.event === 'Line Crossing'" class="w-6 h-6 text-amber-400" />
+            <Activity
+              v-else-if="alarm.event === 'Motion Detection'"
+              class="w-6 h-6 text-rose-400"
+            />
             <VideoOff v-else class="w-6 h-6 text-zinc-500" />
           </div>
 
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 mb-1">
-              <span class="font-bold text-zinc-200">{{ alarm.type }}</span>
-              <span
-                class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-zinc-800 text-zinc-500"
-                >Normal Priority</span
-              >
+              <span class="font-bold text-zinc-200">{{ alarm.event }}</span>
             </div>
             <p class="text-sm text-zinc-500 flex items-center gap-4">
               <span class="flex items-center gap-1.5"
-                ><Monitor class="w-3.5 h-3.5" /> {{ alarm.device }}</span
+                ><Monitor class="w-3.5 h-3.5" /> {{ alarm.device_ip_web || 'Unknown Device' }}</span
               >
-              <span class="flex items-center gap-1.5"
-                ><Layers class="w-3.5 h-3.5" /> CH {{ alarm.channel }}</span
+              <span class="flex items-center gap-1.5" v-if="alarm.channel_id_in_device"
+                ><Layers class="w-3.5 h-3.5" />
+                {{ alarm.channel_name || alarm.channel_id_in_device }}</span
               >
             </p>
+            <p class="text-xs text-zinc-600 mt-1 italic">{{ alarm.message }}</p>
           </div>
 
           <div class="shrink-0 text-right">
             <p class="text-xs font-mono text-zinc-600 group-hover:text-zinc-400 transition-colors">
-              {{ alarm.time }}
+              {{ new Date(alarm.created_at).toLocaleString() }}
             </p>
             <button
-              class="mt-2 text-[10px] font-bold uppercase tracking-widest text-teal-500 hover:text-teal-400 transition-colors px-2 py-1 rounded-md hover:bg-teal-500/5"
+              @click="deleteAlarm(alarm.id)"
+              class="mt-2 p-2 hover:bg-rose-500/10 text-zinc-600 hover:text-rose-400 rounded-lg transition-colors"
+              title="Delete Alarm"
             >
-              View Footage
+              <Trash2 class="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -84,7 +87,7 @@
 
       <div class="flex justify-center pt-8">
         <button
-          @click="loadMore"
+          @click="() => loadMore(true)"
           :disabled="loading"
           class="px-8 py-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 text-zinc-300 font-bold transition-all flex items-center gap-3 disabled:opacity-50"
         >
@@ -138,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject } from 'vue'
+import { ref, inject, onMounted } from 'vue'
 import { useAlarmStore } from '../stores/alarms'
 import {
   Bell,
@@ -159,15 +162,28 @@ const notify =
 const loading = ref(false)
 const showClearConfirm = ref(false)
 
-const loadMore = async () => {
+onMounted(() => {
+  loadMore(false)
+})
+
+const loadMore = async (isLoadMore = true) => {
   loading.value = true
   try {
-    await alarmStore.loadMore()
-    notify('Updated', 'Fetched older alarm events', 'info')
+    await alarmStore.fetchAlarms(isLoadMore)
+    if (isLoadMore) notify('Updated', 'Fetched older alarm events', 'info')
   } catch (err: any) {
-    notify('Error', 'Failed to purge security logs', 'error')
+    notify('Error', 'Failed to fetch alarms', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+const deleteAlarm = async (id: number) => {
+  try {
+    await alarmStore.deleteAlarm(id)
+    notify('Deleted', 'Alarm record removed', 'info')
+  } catch (e) {
+    notify('Error', 'Failed to delete alarm', 'error')
   }
 }
 

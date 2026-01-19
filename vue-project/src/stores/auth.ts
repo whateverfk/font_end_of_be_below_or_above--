@@ -51,6 +51,30 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value
   }
 
+  // ===== REGISTER =====
+  async function register(username: string, password: string) {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null)
+      throw new Error(errorData?.detail || 'Registration failed')
+    }
+
+    const data = await response.json()
+
+    token.value = data.token
+    localStorage.setItem('token', data.token)
+
+    const decoded = decodeJwt(data.token)
+    user.value = mapUserFromJwt(decoded)
+
+    return user.value
+  }
+
   // ===== LOGOUT =====
   function logout() {
     token.value = null
@@ -93,6 +117,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isSuperAdmin,
     login,
+    register,
     logout,
     updatePassword,
   }

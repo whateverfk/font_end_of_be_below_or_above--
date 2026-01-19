@@ -19,5 +19,6 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     throw new Error(errorText || 'API error')
   }
 
-  return res.json()
+  const text = await res.text()
+  return text ? JSON.parse(text) : {}
 }

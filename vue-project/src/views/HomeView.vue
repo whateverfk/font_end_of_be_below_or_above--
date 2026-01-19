@@ -408,7 +408,7 @@ const toggleStatus = async (device: any) => {
     notify(
       newStatus ? 'Activated' : 'Standby',
       `Device hardware is now ${newStatus ? 'online' : 'paused'}`,
-      'info',
+      'success',
     )
   } catch (err: any) {
     notify('Toggle Failed', 'Could not update status', 'error')

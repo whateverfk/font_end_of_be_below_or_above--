@@ -78,28 +78,50 @@ export const useDeviceStore = defineStore('devices', () => {
   // PUT: /api/devices/{id}
   // =========================
   async function updateDevice(id: number | string, data: any) {
-    // Tìm device hiện tại để lấy các giá trị cũ nếu thiếu (Dùng loose equality ==)
-    const existing = devices.value.find((d) => d.id == id)
+    const index = devices.value.findIndex((d) => d.id == id)
+    const original = index !== -1 ? { ...devices.value[index] } : null
 
+    // Optimistic Update
+    if (index !== -1 && original) {
+      devices.value[index] = {
+        ...original,
+        ...data, // This assumes data keys match frontend model (ipWeb etc). 
+        // Note: 'status' is correct. 'ipWeb' etc are correct.
+      }
+    }
+
+    // Payload construction
+    const existing = original
     const payload: any = {}
+
+    // We need to use 'existing' values if 'data' is partial.
+    // However, since we did optimistic update, devices.value[index] is already merged.
+    // But safely constructing payload from 'data' + 'existing' is better.
+
     payload.ip_web = data.ipWeb ?? existing?.ipWeb
     payload.ip_nvr = data.ipNvr ?? existing?.ipNvr
     payload.username = data.username ?? existing?.username
     payload.brand = data.brand ?? existing?.brand
 
-    // is_checked xử lý đặc biệt vì nó là boolean
     if (data.status !== undefined) payload.is_checked = data.status
     else payload.is_checked = existing?.status
 
-    // Password chỉ gửi nếu có
     if (data.password) payload.password = data.password
 
-    await apiFetch(`${API_CONFIG.BASE_URL}/api/devices/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    })
-
-    await fetchDevices()
+    try {
+      await apiFetch(`${API_CONFIG.BASE_URL}/api/devices/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      })
+      // Ensure consistency but don't block UI
+      fetchDevices()
+    } catch (error) {
+      // Revert
+      if (index !== -1 && original) {
+        devices.value[index] = original
+      }
+      throw error
+    }
   }
 
   // =========================
