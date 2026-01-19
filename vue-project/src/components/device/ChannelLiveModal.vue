@@ -9,9 +9,9 @@
           </div>
           <div>
             <h3 class="text-xl font-black text-zinc-100 uppercase tracking-tight">
-              {{ channel?.channel_name || `Channel ${channel?.channel_no}` }}
+              Live Stream & Configuration
             </h3>
-            <p class="text-xs text-zinc-500 font-mono">Live Stream & Configuration</p>
+            <p class="text-xs text-zinc-500 font-mono">Channel: {{ channel?.channel_name || channel?.channel_no }}</p>
           </div>
         </div>
         <button @click="handleClose" class="p-2 hover:bg-white/10 rounded-xl text-zinc-400 hover:text-white transition-all">
@@ -24,13 +24,22 @@
         <!-- Live Player (Left/Top) -->
         <div class="flex-[3] bg-black relative group flex items-center justify-center p-4">
           <div class="w-full aspect-video bg-zinc-950 rounded-2xl border border-white/5 overflow-hidden relative shadow-2xl shadow-teal-500/5">
-            <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <div class="absolute inset-0 flex flex-col items-center justify-center -z-10">
                <Loader2 v-if="loadingStream" class="w-12 h-12 animate-spin text-teal-500 mb-4" />
-               <Play class="w-16 h-16 text-teal-500 mx-auto opacity-20 mb-4" />
-               <p class="text-zinc-600 font-mono text-sm">
-                 /api/device/{{ deviceId }}/channel/{{ channel?.id }}/live
+               <Play v-else class="w-16 h-16 text-teal-500 mx-auto opacity-20 mb-4" />
+               <p class="text-zinc-600 font-mono text-[10px] mt-2" v-if="!loadingStream">
+                  /api/device/{{ deviceId }}/channel/{{ channel?.id }}/live
                </p>
             </div>
+            
+            <!-- Video Player -->
+            <video
+              ref="videoRef"
+              class="w-full h-full object-contain bg-black"
+              autoplay
+              muted
+              playsinline
+            ></video>
             
             <!-- Controls Overlay -->
             <div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
@@ -52,7 +61,7 @@
               Live
             </div>
             <div class="px-3 py-1 bg-black/60 backdrop-blur rounded-full border border-white/10 text-[10px] font-mono text-zinc-400">
-              {{ channelConfig?.width }}x{{ channelConfig?.height }} @ {{ channelConfig?.max_frame_rate }}fps
+              {{ channelConfig?.resolution_width }}x{{ channelConfig?.resolution_height }} @ {{ channelConfig?.max_frame_rate }}fps
             </div>
           </div>
         </div>
@@ -72,6 +81,11 @@
           </div>
 
           <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar" v-if="channelConfig">
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Channel Name</label>
+              <input type="text" v-model="channelConfig.channel_name" class="form-input" placeholder="Enter channel name" />
+            </div>
+
             <!-- Basic Info -->
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
@@ -108,14 +122,14 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-1">
-                <label class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Max Bitrate (kbps)</label>
-                <input type="number" v-model="channelConfig.vbr_max" class="form-input" />
-              </div>
-              <div class="space-y-1">
+            <div class="grid grid-cols-1 gap-4">
+              <div class="space-y-1" v-if="channelConfig.h265_plus">
                 <label class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Avg Bitrate (kbps)</label>
-                <input type="number" v-model="channelConfig.vbr_average" class="form-input" />
+                <input type="number" v-model="channelConfig.vbr_average_cap" class="form-input" />
+              </div>
+              <div class="space-y-1" v-else>
+                <label class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Max Bitrate (kbps)</label>
+                <input type="number" v-model="channelConfig.vbr_upper_cap" class="form-input" />
               </div>
             </div>
 
@@ -141,11 +155,11 @@
                    <span class="text-sm font-medium text-zinc-300">Motion Detection</span>
                  </div>
                  <button 
-                  @click="channelConfig.motion_detection = !channelConfig.motion_detection"
+                  @click="channelConfig.motion_detect = !channelConfig.motion_detect"
                   class="w-10 h-5 rounded-full transition-colors relative"
-                  :class="channelConfig.motion_detection ? 'bg-teal-500' : 'bg-zinc-700'"
+                  :class="channelConfig.motion_detect ? 'bg-teal-500' : 'bg-zinc-700'"
                  >
-                   <div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform" :style="{ transform: channelConfig.motion_detection ? 'translateX(20px)' : 'none' }"></div>
+                   <div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform" :style="{ transform: channelConfig.motion_detect ? 'translateX(20px)' : 'none' }"></div>
                  </button>
               </div>
             </div>
@@ -170,9 +184,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onUnmounted, computed } from 'vue'
 import { useLiveStore } from '@/stores/live'
+import { API_CONFIG } from '@/config'
 import { X, Monitor, Play, Loader2, Settings, Maximize2, RefreshCw, Shield, Construction, Save } from 'lucide-vue-next'
+// @ts-ignore
+import Hls from 'https://cdn.jsdelivr.net/npm/hls.js@1/+esm'
 
 const props = defineProps<{
   isOpen: boolean
@@ -186,15 +203,17 @@ const liveStore = useLiveStore()
 const channelConfig = ref<any>(null)
 const capabilities = computed(() => liveStore.capabilities)
 const loadingStream = ref(false)
-let heartbeatInterval: any = null
+const videoRef = ref<HTMLVideoElement | null>(null)
+let hbInterval: any = null
+let hlsInstance: any = null
 
 const selectedResKey = computed({
-  get: () => channelConfig.value ? `${channelConfig.value.width}x${channelConfig.value.height}` : '',
+  get: () => channelConfig.value ? `${channelConfig.value.resolution_width}x${channelConfig.value.resolution_height}` : '',
   set: (val) => {
     if (!channelConfig.value || !val) return
     const [w, h] = val.split('x').map(Number)
-    channelConfig.value.width = w
-    channelConfig.value.height = h
+    channelConfig.value.resolution_width = w
+    channelConfig.value.resolution_height = h
   }
 })
 
@@ -208,7 +227,8 @@ watch(() => props.isOpen, async (val) => {
       channelConfig.value = JSON.parse(JSON.stringify(liveStore.channelConfig))
     }
     
-    // Heartbeat for stream
+    // Start Stream and Heartbeat
+    initPlayer()
     startHeartbeat()
     loadingStream.value = false
   } else {
@@ -216,9 +236,63 @@ watch(() => props.isOpen, async (val) => {
   }
 })
 
+function initPlayer() {
+  if (!videoRef.value || !props.channel) return
+  
+  // Fetch dynamic HLS URL from backend
+  liveStore.startStream(props.deviceId, props.channel.id).then((res: any) => {
+    if (res.status === 'ok' && res.hls_url) {
+      const hlsUrl = `${API_CONFIG.BASE_URL}${res.hls_url}`
+      
+      if (Hls.isSupported()) {
+        hlsInstance = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 60
+        })
+        hlsInstance.loadSource(hlsUrl)
+        hlsInstance.attachMedia(videoRef.value!)
+        
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          videoRef.value?.play().catch(() => {
+            console.log("Autoplay blocked, user interaction required")
+          })
+        })
+
+        hlsInstance.on(Hls.Events.ERROR, (_event: any, data: any) => {
+            if (data.fatal) {
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.error("Fatal network error encountered, try to recover")
+                        hlsInstance.startLoad()
+                        break
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.error("Fatal media error encountered, try to recover")
+                        hlsInstance.recoverMediaError()
+                        break
+                    default:
+                        console.error("Fatal error, destroying Hls")
+                        cleanup()
+                        break
+                }
+            }
+        })
+      } else if (videoRef.value!.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS support (Safari)
+        videoRef.value!.src = hlsUrl
+        videoRef.value!.addEventListener('loadedmetadata', () => {
+          videoRef.value?.play()
+        })
+      }
+    }
+  }).catch(err => {
+      console.error("Failed to start stream:", err)
+  })
+}
+
 function startHeartbeat() {
   stopHeartbeat()
-  heartbeatInterval = setInterval(() => {
+  hbInterval = setInterval(() => {
     if (props.isOpen && props.channel) {
       liveStore.sendHeartbeat(props.deviceId, props.channel.id)
     }
@@ -226,8 +300,8 @@ function startHeartbeat() {
 }
 
 function stopHeartbeat() {
-  if (heartbeatInterval) clearInterval(heartbeatInterval)
-  heartbeatInterval = null
+  if (hbInterval) clearInterval(hbInterval)
+  hbInterval = null
 }
 
 async function handleSync() {
@@ -253,12 +327,24 @@ function handleClose() {
 
 async function cleanup() {
   stopHeartbeat()
+  if (hlsInstance) {
+    hlsInstance.destroy()
+    hlsInstance = null
+  }
+  if (videoRef.value) {
+    videoRef.value.src = ""
+    videoRef.value.load()
+  }
   if (props.channel) {
     try {
       await liveStore.stopStream(props.deviceId, props.channel.id)
     } catch(e){}
   }
 }
+
+onUnmounted(() => {
+  cleanup()
+})
 </script>
 
 <style scoped>

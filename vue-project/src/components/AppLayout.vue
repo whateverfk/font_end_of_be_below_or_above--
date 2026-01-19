@@ -2,8 +2,8 @@
   <div class="flex h-screen w-full overflow-hidden bg-zinc-950 text-zinc-100">
     <!-- Sidebar -->
     <aside
-      class="glass w-64 flex-shrink-0 flex flex-col border-r border-white/10 transition-all duration-300"
-      :class="{ 'w-20': isCollapsed }"
+      class="glass flex-shrink-0 flex flex-col border-r border-white/10 transition-all duration-300"
+      :class="isCollapsed ? 'w-20' : 'w-64'"
     >
       <div class="p-6 flex items-center gap-3 overflow-hidden">
         <div class="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center shrink-0">

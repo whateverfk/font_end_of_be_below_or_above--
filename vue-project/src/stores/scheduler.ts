@@ -21,7 +21,7 @@ export interface TimeParams {
 
 export interface RecordingModeResponse {
   device_id: number
-  id: number
+  channel_id: number
   channel_no: number
   channel_name: string
   schedule_enable: boolean

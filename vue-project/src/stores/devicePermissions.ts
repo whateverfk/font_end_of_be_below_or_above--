@@ -56,6 +56,9 @@ export const useDevicePermissionsStore = defineStore('devicePermissions', () => 
         "preview", "playback", "record", "backup", "ptz_control",
     ]
 
+    const ERROR_MSG_LOW_PRIVILEGE = "You do not have enough privilege to perform this operation"
+    const ERROR_MSG_INVALID_OPERATION = "Invalid operation"
+
     async function fetchPermissions(deviceId: number | string, userId: number) {
         loading.value.fetch = true
         try {
@@ -77,7 +80,6 @@ export const useDevicePermissionsStore = defineStore('devicePermissions', () => 
     }
 
     async function updatePermissions(deviceId: number | string, userId: number, perms: UserPermissions) {
-
         loading.value.update = true
         const data = {
             device_id: deviceId,
@@ -85,10 +87,39 @@ export const useDevicePermissionsStore = defineStore('devicePermissions', () => 
             permissions: perms
         }
         try {
-            await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/user/${userId}/permissions`, {
+            const result = await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/user/${userId}/permissions`, {
                 method: 'PUT',
                 body: JSON.stringify(data)
             })
+
+            // Backend might return success: true or error: "...""
+            if (result.success !== false && !result.error) {
+                return {
+                    success: true,
+                    code: "OK",
+                    message: "Permission updated successfully"
+                }
+            }
+
+            if (result.error === "LOW_PRIVILEGE") {
+                return {
+                    success: false,
+                    code: "LOW_PRIVILEGE",
+                    message: ERROR_MSG_LOW_PRIVILEGE
+                }
+            }
+
+            return {
+                success: false,
+                code: "INVALID_OPERATION",
+                message: ERROR_MSG_INVALID_OPERATION
+            }
+        } catch (err: any) {
+            return {
+                success: false,
+                code: "ERROR",
+                message: err.message || "An unexpected error occurred"
+            }
         } finally {
             loading.value.update = false
         }

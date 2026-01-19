@@ -2,7 +2,7 @@
   <div class="h-full">
     <div class="h-full flex gap-6 overflow-hidden">
       <!-- Sidebar Navigation -->
-      <div 
+      <div
         class="glass-card flex flex-col overflow-hidden shrink-0 border-white/5 transition-all duration-300 relative"
         :class="isSidebarCollapsed ? 'w-20' : 'w-64'"
       >
@@ -14,13 +14,13 @@
             <ArrowLeft class="w-4 h-4 shrink-0" />
             <span v-if="!isSidebarCollapsed" class="text-xs font-bold uppercase tracking-widest">Back to Devices</span>
           </button>
-          
+
           <div class="flex items-center justify-between gap-2 overflow-hidden">
             <h3 class="font-bold text-zinc-200 text-lg flex items-center gap-2 whitespace-nowrap">
               <Monitor class="w-5 h-5 text-teal-400 shrink-0" />
               <span v-if="!isSidebarCollapsed">Device Details</span>
             </h3>
-            <button 
+            <button
               @click="isSidebarCollapsed = !isSidebarCollapsed"
               class="p-1.5 hover:bg-white/10 rounded-lg text-zinc-500 hover:text-white transition-colors shrink-0"
               :title="isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
@@ -29,7 +29,7 @@
               <ChevronRight v-else class="w-4 h-4" />
             </button>
           </div>
-          
+
           <p
             v-if="!isSidebarCollapsed && deviceStore.devices.find((d) => d.id == route.params.id)"
             class="text-[10px] text-zinc-500 mt-1 pl-7 truncate"
@@ -283,16 +283,7 @@
                       <p class="text-xs text-zinc-500 capitalize">{{ deviceUser.role }}</p>
                     </div>
                   </div>
-                  <div
-                    class="px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest border"
-                    :class="
-                      deviceUser.is_active
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                        : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                    "
-                  >
-                    {{ deviceUser.is_active ? 'Active' : 'Inactive' }}
-                  </div>
+
                 </div>
 
                 <!-- Permissions Button -->
@@ -458,14 +449,14 @@
               >
                 <!-- Card Background/Visual -->
                 <div class="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                
+
                 <div class="w-12 h-12 rounded-xl bg-zinc-800 text-zinc-500 flex items-center justify-center group-hover:bg-teal-500/20 group-hover:text-teal-400 transition-all">
                   <Monitor class="w-6 h-6" />
                 </div>
-                
+
                 <div class="text-center relative z-10">
                   <p class="font-bold text-zinc-300 group-hover:text-white transition-colors">
-                    {{ channel.channel_name || `Channel ${channel.channel_no}` }}
+                    {{ channel.channel_name || channel.channel_no }}
                   </p>
                   <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
                     CH {{ channel.channel_no }}
@@ -522,7 +513,7 @@
                     "
                   >
                     <span class="truncate">{{
-                      channel.channel_name || `Channel ${channel.channel_no}`
+                      channel.channel_name || channel.channel_no
                     }}</span>
                     <Clock class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
@@ -560,11 +551,38 @@
                   </div>
                 </div>
 
-                <div class="flex-1 relative p-6 overflow-hidden flex flex-col justify-center">
+                <div class="flex-1 relative p-6 overflow-y-auto custom-scrollbar flex flex-col">
                   <div
-                    v-if="selectedChannelId && schedulerStore.channelModes[selectedChannelId]"
+                    v-if="activeChannelMode"
                     class="space-y-6"
                   >
+                    <!-- Schedule Info Summary -->
+                    <div class="flex flex-wrap items-center gap-6 p-4 bg-white/5 rounded-xl border border-white/10 mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                                <Shield class="w-4 h-4 text-teal-400" />
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Schedule Status</p>
+                                <p :class="activeChannelMode.schedule_enable ? 'text-emerald-400' : 'text-rose-400'" class="text-sm font-black uppercase italic">
+                                    {{ activeChannelMode.schedule_enable ? 'Active' : 'Disabled' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                                <Monitor class="w-4 h-4 text-teal-400" />
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Default Record Mode</p>
+                                <p class="text-sm font-black text-zinc-100 uppercase italic">
+                                    {{ schedulerStore.MODE_CONFIG[activeChannelMode.default_mode as keyof typeof schedulerStore.MODE_CONFIG]?.label || activeChannelMode.default_mode }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div
                       v-for="(day, dayIdx) in schedulerStore.DAYS"
                       :key="day"
@@ -580,7 +598,7 @@
                       >
                         <!-- Time Markers -->
                         <div
-                          v-for="(seg, idx) in getDaySegments(selectedChannelId, dayIdx)"
+                          v-for="(seg, idx) in getDaySegments(selectedChannelId!, dayIdx)"
                           :key="idx"
                           class="absolute top-0 bottom-0 h-full border-r border-black/10 transition-all hover:brightness-110 cursor-help"
                           :class="
@@ -831,36 +849,46 @@ watch(selectedChannelId, (newId) => {
   }
 })
 
+const activeChannelMode = computed(() => {
+    if (!selectedChannelId.value) return null
+    return schedulerStore.channelModes[selectedChannelId.value]
+})
+
 // Helper to convert HH:mm:ss to seconds
-function timeToSeconds(t: string) {
+function timeToSeconds(t: string, isEnd = false) {
   if (!t) return 0
   const [h, m, s] = t.split(':').map(Number)
-  return (h || 0) * 3600 + (m || 0) * 60 + (s || 0)
+  const total = (h || 0) * 3600 + (m || 0) * 60 + (s || 0)
+  // If it's a midnight end time (00:00:00), it's likely the end of the day (24:00:00)
+  if (isEnd && total === 0) return 86400
+  return total
 }
 
 function getDaySegments(channelId: number, dayIndex: number) {
   const data = schedulerStore.channelModes[channelId]
   if (!data || !data.timeline) return []
 
-  // Filter segments for this day
-  // The API might return day_start="0" (Mon) to day_end="0" (Mon)
-  // Or crossing midnight? The spec example shows simple daily segments.
-  // Assuming timeline items are already split by day or we filter by day_start == dayIndex
-
-  const dayStr = String(dayIndex) // "0" to "6"
+  const dayName = schedulerStore.DAYS[dayIndex]
+  
   return data.timeline
-    .filter((t) => t.day_start === dayStr)
+    .filter((t) => t.day_start === dayName)
     .map((t) => {
       const startSec = timeToSeconds(t.time_start)
-      const endSec = timeToSeconds(t.time_end)
+      // Determine if this segment ends at the start of the NEXT day
+      const isNextDay = t.day_end !== t.day_start
+      const endSec = timeToSeconds(t.time_end, isNextDay || t.time_end === '00:00:00')
+      
       const totalSec = 86400
 
       const startPct = (startSec / totalSec) * 100
-      const widthPct = ((endSec - startSec) / totalSec) * 100
+      let widthPct = ((endSec - startSec) / totalSec) * 100
+      
+      // Clamp width
+      if (widthPct > 100) widthPct = 100
 
       return {
-        startPct,
-        widthPct,
+        startPct: Math.max(0, startPct),
+        widthPct: Math.max(0, widthPct),
         mode: t.mode,
         startTime: t.time_start,
         endTime: t.time_end,

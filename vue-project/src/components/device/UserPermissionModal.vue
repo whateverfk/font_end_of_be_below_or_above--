@@ -78,7 +78,7 @@
                                     @change="toggleChannel(permKey, channel.id)"
                                     class="accent-teal-500 rounded-sm"
                                  >
-                                 <span class="truncate">{{ channel.channel_name || `Channel ${channel.channel_no}` }}</span>
+                                 <span class="truncate">{{ channel.channel_name || channel.channel_no }}</span>
                              </label>
                         </div>
                       </div>
@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, inject } from 'vue'
 import { useDevicePermissionsStore, type UserPermissions } from '@/stores/devicePermissions'
 import { useSchedulerStore } from '@/stores/scheduler'
 import { X, Loader2, ChevronRight, Settings2, ChevronDown, RefreshCw } from 'lucide-vue-next'
@@ -120,6 +120,7 @@ const emit = defineEmits(['close', 'saved'])
 
 const permStore = useDevicePermissionsStore()
 const schedulerStore = useSchedulerStore()
+const notify = inject<any>('notify')
 
 const activeScope = ref<'local' | 'remote'>('local')
 const expandedPerms = ref<string[]>([])
@@ -159,17 +160,24 @@ function isGlobalChecked(permKey: string) {
 
 function toggleGlobal(permKey: string) {
     if (!localPerms.value) return
-    const current = !!localPerms.value[activeScope.value].global[permKey]
+    const scope = activeScope.value
+    const current = !!localPerms.value[scope].global[permKey]
     const next = !current
-    localPerms.value[activeScope.value].global[permKey] = next
+    
+    // Update global state explicitly to ensure reactivity
+    localPerms.value[scope].global = {
+        ...localPerms.value[scope].global,
+        [permKey]: next
+    }
 
-    // If unchecking global, clear all channels for this permission
-    if (!next) {
-        localPerms.value[activeScope.value].channels[permKey] = []
-    } else {
-        // If checking global and it's a channel-based perm, optionally check all?
-        // User said "only need 1 channel then it will be checked",
-        // but if they click global directly, let's at least keep global checked.
+    // If it's a channel-based permission, sync all channels
+    if (permStore.CHANNEL_BASED_PERMISSIONS.includes(permKey)) {
+        if (!next) {
+            localPerms.value[scope].channels[permKey] = []
+        } else {
+            // Check all channels
+            localPerms.value[scope].channels[permKey] = channels.value.map(c => c.id)
+        }
     }
 }
 
@@ -195,7 +203,8 @@ function isChannelChecked(permKey: string, channelId: number) {
 
 function toggleChannel(permKey: string, channelId: number) {
     if (!localPerms.value) return
-    let list = localPerms.value[activeScope.value].channels[permKey] || []
+    const scope = activeScope.value
+    let list = [...(localPerms.value[scope].channels[permKey] || [])]
 
     if (list.includes(channelId)) {
         list = list.filter(id => id !== channelId)
@@ -203,11 +212,14 @@ function toggleChannel(permKey: string, channelId: number) {
         list.push(channelId)
     }
 
-    localPerms.value[activeScope.value].channels[permKey] = list
+    // Update channels list
+    localPerms.value[scope].channels[permKey] = list
 
-    // If any channel is checked, ensure the global checkbox for this permission is ALSO checked
-    if (list.length > 0) {
-        localPerms.value[activeScope.value].global[permKey] = true
+    // Update global checkbox explicitly to ensure reactivity
+    const isNowGlobalEnabled = list.length > 0
+    localPerms.value[scope].global = {
+        ...localPerms.value[scope].global,
+        [permKey]: isNowGlobalEnabled
     }
 }
 
@@ -221,9 +233,15 @@ async function handleSync() {
 
 async function save() {
     if (!localPerms.value || !props.user) return
-    await permStore.updatePermissions(props.deviceId, props.user.id, localPerms.value)
-    emit('saved')
-    close()
+    const result = await permStore.updatePermissions(props.deviceId, props.user.id, localPerms.value)
+    
+    if (result.success) {
+        notify?.('Success', result.message, 'success')
+        emit('saved')
+        close()
+    } else {
+        notify?.('Error', result.message, 'error')
+    }
 }
 </script>
 

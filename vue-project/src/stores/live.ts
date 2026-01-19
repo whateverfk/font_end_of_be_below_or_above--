@@ -19,16 +19,16 @@ export interface ChannelCapabilities {
 }
 
 export interface ChannelConfig {
-  name: string
-  width: number
-  height: number
+  channel_name: string
+  resolution_width: number
+  resolution_height: number
   video_codec: string
   max_frame_rate: number
   fixed_quality: number
   h265_plus: boolean
-  vbr_average: number
-  vbr_max: number
-  motion_detection: boolean
+  vbr_average_cap: number
+  vbr_upper_cap: number
+  motion_detect: boolean
 }
 
 export const useLiveStore = defineStore('live', () => {
@@ -71,7 +71,7 @@ export const useLiveStore = defineStore('live', () => {
         `${API_CONFIG.BASE_URL}/api/device/${deviceId}/channel/${channelId}/infor/capabilities`,
       )
       capabilities.value = data
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async function updateConfig(deviceId: number | string, channelId: number, config: ChannelConfig) {
@@ -103,7 +103,7 @@ export const useLiveStore = defineStore('live', () => {
       await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/channel/${channelId}/stop`, {
         method: 'POST',
       })
-    } catch (e) {}
+    } catch (e) { }
   }
 
   async function sendHeartbeat(deviceId: number | string, channelId: number) {
@@ -112,7 +112,11 @@ export const useLiveStore = defineStore('live', () => {
         `${API_CONFIG.BASE_URL}/api/device/${deviceId}/channel/${channelId}/heartbeat`,
         { method: 'POST' },
       )
-    } catch (e) {}
+    } catch (e) { }
+  }
+
+  async function startStream(deviceId: number | string, channelId: number) {
+    return await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/channel/${channelId}/live`)
   }
 
   return {
@@ -126,5 +130,6 @@ export const useLiveStore = defineStore('live', () => {
     syncConfig,
     stopStream,
     sendHeartbeat,
+    startStream,
   }
 })
