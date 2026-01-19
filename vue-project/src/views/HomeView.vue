@@ -57,7 +57,7 @@
           </div>
           <div>
             <p class="text-xs font-black uppercase tracking-widest text-zinc-500 mb-0.5">
-              Online Now
+              Selected Device
             </p>
             <p class="text-3xl font-black text-zinc-100">
               {{ deviceStore.devices.filter((d) => d.status).length }}
@@ -100,9 +100,7 @@
                   Web Access
                 </th>
                 <th class="px-8 py-5 font-black uppercase tracking-widest text-[10px]">Identity</th>
-                <th class="px-8 py-5 font-black uppercase tracking-widest text-[10px]">
-                  Functional Status
-                </th>
+                <th class="px-8 py-5 font-black uppercase tracking-widest text-[10px]">Select</th>
                 <th class="px-8 py-5 font-black uppercase tracking-widest text-[10px] text-right">
                   Actions
                 </th>
@@ -154,7 +152,7 @@
                       class="absolute left-full ml-3 text-[10px] font-black uppercase tracking-widest"
                       :class="device.status ? 'text-emerald-400' : 'text-zinc-600'"
                     >
-                      {{ device.status ? 'Active' : 'Standby' }}
+                      {{ device.status ? '' : '' }}
                     </span>
                   </button>
                 </td>
@@ -406,7 +404,7 @@ const toggleStatus = async (device: any) => {
     const newStatus = !device.status
     await deviceStore.updateDevice(device.id, { status: newStatus })
     notify(
-      newStatus ? 'Activated' : 'Standby',
+      newStatus ? '' : '',
       `Device hardware is now ${newStatus ? 'online' : 'paused'}`,
       'success',
     )
