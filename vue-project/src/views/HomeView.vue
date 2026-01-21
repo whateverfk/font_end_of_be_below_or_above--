@@ -81,6 +81,7 @@
             <div class="relative">
               <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
               <input
+                v-model="searchQuery"
                 type="text"
                 placeholder="Search devices..."
                 class="bg-zinc-900 border border-white/5 rounded-xl py-2 pl-10 pr-4 text-xs focus:outline-none focus:border-teal-500/30 w-64 transition-all"
@@ -108,7 +109,7 @@
             </thead>
             <tbody class="divide-y divide-white/5">
               <tr
-                v-for="device in deviceStore.devices"
+                v-for="device in filteredDevices"
                 :key="device.id"
                 class="hover:bg-teal-500/[0.02] transition-all group"
               >
@@ -175,11 +176,13 @@
                   </div>
                 </td>
               </tr>
-              <tr v-if="deviceStore.devices.length === 0">
+              <tr v-if="filteredDevices.length === 0">
                 <td colspan="5" class="px-8 py-20 text-center">
                   <div class="flex flex-col items-center gap-4 opacity-20">
                     <AlertCircle class="w-16 h-16" />
-                    <p class="font-bold text-xl uppercase tracking-[0.2em]">No hardware detected</p>
+                    <p class="font-bold text-xl uppercase tracking-[0.2em]">
+                      {{ searchQuery ? 'No matching hardware' : 'No hardware detected' }}
+                    </p>
                   </div>
                 </td>
               </tr>
@@ -332,6 +335,21 @@ const showModal = ref(false)
 const isEditMode = ref(false)
 const currentEditId = ref<number | string | null>(null)
 const submitting = ref(false)
+const searchQuery = ref('')
+
+const filteredDevices = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) return deviceStore.devices
+
+  return deviceStore.devices.filter((device) => {
+    return (
+      device.ipNvr?.toLowerCase().includes(query) ||
+      device.ipWeb?.toLowerCase().includes(query) ||
+      device.brand?.toLowerCase().includes(query) ||
+      device.username?.toLowerCase().includes(query)
+    )
+  })
+})
 
 const form = reactive({
   ipNvr: '',

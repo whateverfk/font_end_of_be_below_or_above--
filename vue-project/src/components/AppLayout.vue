@@ -123,7 +123,7 @@ const currentRouteName = computed(() => {
 
 const handleLogout = () => {
   auth.logout()
-  router.push('/login')
+  router.push('/#/login')
 }
 </script>
 

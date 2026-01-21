@@ -4,7 +4,7 @@ function getToken() {
 
 function handleUnauthorized() {
   localStorage.removeItem('token')
-  window.location.href = '/login'
+  window.location.href = '/#/login'
 }
 
 export async function apiFetch(url: string, options: RequestInit = {}) {
