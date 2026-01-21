@@ -18,10 +18,10 @@
           <label class="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 ml-1">Username</label>
           <div class="relative group">
             <User class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-teal-400 transition-colors" />
-            <input 
+            <input
               v-model="username"
-              type="text" 
-              placeholder="admin"
+              type="text"
+
               class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all placeholder:text-zinc-700"
               required
             />
@@ -32,15 +32,15 @@
           <label class="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 ml-1">Password</label>
           <div class="relative group">
             <Lock class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-teal-400 transition-colors" />
-            <input 
+            <input
               v-model="password"
-              :type="showPassword ? 'text' : 'password'" 
-              placeholder="••••••••"
+              :type="showPassword ? 'text' : 'password'"
+
               class="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all placeholder:text-zinc-700"
               required
             />
-            <button 
-              type="button" 
+            <button
+              type="button"
               @click="showPassword = !showPassword"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300 transition-colors"
             >
@@ -50,8 +50,8 @@
           </div>
         </div>
 
-      <button 
-        type="submit" 
+      <button
+        type="submit"
         :disabled="loading"
         class="w-full bg-teal-500 hover:bg-teal-400 disabled:bg-teal-800 disabled:text-zinc-400 text-zinc-950 font-bold py-3.5 rounded-xl shadow-lg shadow-teal-500/20 transform transition-all active:scale-[0.98] flex items-center justify-center gap-2"
       >
@@ -68,7 +68,7 @@
       </form>
 
       <p class="mt-8 text-center text-sm text-zinc-500">
-        Don't have an account? 
+        Don't have an account?
         <button @click="openRegisterModal" class="text-teal-400 hover:text-teal-300 font-medium ml-1 outline-none">Register Account</button>
       </p>
     </div>
@@ -79,7 +79,7 @@
         <button @click="closeRegisterModal" class="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors">
           <X class="w-5 h-5" />
         </button>
-        
+
         <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
             <User class="w-5 h-5 text-teal-500" />
             Create Account
@@ -88,21 +88,21 @@
         <form @submit.prevent="handleRegister" class="space-y-4">
             <div>
                 <label class="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 ml-1">Username</label>
-                <input 
+                <input
                     v-model="regUsername"
-                    type="text" 
+                    type="text"
                     placeholder="Choose a username"
                     class="w-full bg-zinc-800 border border-zinc-700 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-white"
                     required
                     minlength="3"
                 />
             </div>
-            
+
             <div>
                 <label class="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 ml-1">Password</label>
-                <input 
+                <input
                     v-model="regPassword"
-                    type="password" 
+                    type="password"
                     placeholder="Choose a password (min 6 chars)"
                     class="w-full bg-zinc-800 border border-zinc-700 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all text-white"
                     required
@@ -114,8 +114,8 @@
                 {{ regError }}
             </div>
 
-            <button 
-                type="submit" 
+            <button
+                type="submit"
                 :disabled="regLoading"
                 class="w-full bg-teal-500 hover:bg-teal-400 disabled:bg-teal-800 disabled:text-zinc-400 text-zinc-950 font-bold py-3 rounded-xl shadow-lg shadow-teal-500/20 transform transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
             >
@@ -125,7 +125,7 @@
         </form>
       </div>
     </div>
-    
+
     <ToastProvider ref="toastRef" />
   </div>
 </template>

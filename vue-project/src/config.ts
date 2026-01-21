@@ -4,6 +4,6 @@
  */
 export const API_CONFIG = {
   // Thay đổi URL này khi deploy hoặc kết nối với backend
-  BASE_URL: 'http://127.0.0.1:8000',
+  BASE_URL: '',
   TIMEOUT: 5000,
 }

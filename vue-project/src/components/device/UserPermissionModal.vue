@@ -155,13 +155,19 @@ function close() {
 // Checkbox Logic
 function isGlobalChecked(permKey: string) {
     if (!localPerms.value) return false
-    return !!localPerms.value[activeScope.value].global[permKey]
+    const scope = activeScope.value
+    // For PTZ control, check if any channel is selected regardless of global flag
+    if (permKey === 'ptz_control') {
+        const list = localPerms.value[scope].channels[permKey] || []
+        return list.length > 0
+    }
+    return !!localPerms.value[scope].global[permKey]
 }
 
 function toggleGlobal(permKey: string) {
     if (!localPerms.value) return
     const scope = activeScope.value
-    const current = !!localPerms.value[scope].global[permKey]
+    const current = isGlobalChecked(permKey)
     const next = !current
     
     // Update global state explicitly to ensure reactivity

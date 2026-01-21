@@ -91,7 +91,7 @@ export const useLiveStore = defineStore('live', () => {
   async function syncConfig(deviceId: number | string, channelId: number) {
     loading.value.sync = true
     try {
-      await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/channel/${channelId}/sync`)
+      await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/channel/${channelId}/infor/sync`)
       await fetchConfig(deviceId, channelId)
     } finally {
       loading.value.sync = false

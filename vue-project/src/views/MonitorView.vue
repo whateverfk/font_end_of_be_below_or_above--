@@ -32,7 +32,7 @@
         <div class="flex items-center gap-4">
           <h3 class="text-xl font-bold flex items-center gap-2">
             <Calendar class="w-5 h-5 text-teal-400" />
-            Archive Monitoring
+            Archive Recording
           </h3>
           <div v-if="selectedDevice" class="h-6 w-px bg-white/10 mx-2"></div>
           <span v-if="selectedDevice" class="text-zinc-400 text-sm">
@@ -229,9 +229,9 @@
         ></div>
         <div class="glass-card w-full max-w-sm p-8 relative z-10">
           <h3 class="text-xl font-bold mb-6">Display Settings</h3>
-          cons
+
           <div class="space-y-4">
-            cons
+
             <div>
               <label class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1.5"
                 >Start Day</label

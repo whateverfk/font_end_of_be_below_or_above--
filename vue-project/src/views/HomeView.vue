@@ -264,7 +264,7 @@
                 :required="!isEditMode"
                 type="password"
                 class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm focus:outline-none focus:border-teal-500/50"
-                placeholder="••••••••"
+                
               />
             </div>
             <div class="col-span-2">
@@ -405,7 +405,7 @@ const toggleStatus = async (device: any) => {
     await deviceStore.updateDevice(device.id, { status: newStatus })
     notify(
       newStatus ? '' : '',
-      `Device hardware is now ${newStatus ? 'online' : 'paused'}`,
+      `Device hardware đã được  ${newStatus ? 'chọn' : 'tắt'}`,
       'success',
     )
   } catch (err: any) {

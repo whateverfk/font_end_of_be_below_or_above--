@@ -11,7 +11,7 @@
             <h3 class="text-xl font-black text-zinc-100 uppercase tracking-tight">
               Live Stream & Configuration
             </h3>
-            <p class="text-xs text-zinc-500 font-mono">Channel: {{ channel?.channel_name || channel?.channel_no }}</p>
+            <p class="text-xs text-zinc-500 font-mono">Channel: {{ channel?.name || channel?.channel_no }}</p>
           </div>
         </div>
         <button @click="handleClose" class="p-2 hover:bg-white/10 rounded-xl text-zinc-400 hover:text-white transition-all">
@@ -31,7 +31,7 @@
                   /api/device/{{ deviceId }}/channel/{{ channel?.id }}/live
                </p>
             </div>
-            
+
             <!-- Video Player -->
             <video
               ref="videoRef"
@@ -40,7 +40,7 @@
               muted
               playsinline
             ></video>
-            
+
             <!-- Controls Overlay -->
             <div class="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
                <div class="flex gap-2">
@@ -53,16 +53,14 @@
                </div>
             </div>
           </div>
-          
+
           <!-- Stream Stats -->
           <div class="absolute top-8 left-8 flex gap-2">
             <div class="px-3 py-1 bg-black/60 backdrop-blur rounded-full border border-white/10 text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2">
               <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
               Live
             </div>
-            <div class="px-3 py-1 bg-black/60 backdrop-blur rounded-full border border-white/10 text-[10px] font-mono text-zinc-400">
-              {{ channelConfig?.resolution_width }}x{{ channelConfig?.resolution_height }} @ {{ channelConfig?.max_frame_rate }}fps
-            </div>
+
           </div>
         </div>
 
@@ -70,8 +68,8 @@
         <div class="flex-[2] border-l border-white/10 bg-white/[0.01] flex flex-col overflow-hidden">
           <div class="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
             <span class="text-xs font-bold uppercase tracking-widest text-zinc-500">Video Settings</span>
-            <button 
-              @click="handleSync" 
+            <button
+              @click="handleSync"
               :disabled="liveStore.loading.sync"
               class="text-[10px] font-black uppercase tracking-tight text-teal-400 hover:text-teal-300 transition-colors flex items-center gap-1 disabled:opacity-50"
             >
@@ -109,7 +107,7 @@
               <div class="space-y-1">
                 <label class="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">FPS Limit</label>
                 <select v-model="channelConfig.max_frame_rate" class="form-input">
-                   <option v-for="f in capabilities?.max_frame_rates" :key="f" :value="f">{{ f }} FPS</option>
+                   <option v-for="f in capabilities?.max_frame_rates" :key="f" :value="f">{{ f / 100 }} FPS</option>
                 </select>
               </div>
               <div class="space-y-1">
@@ -140,7 +138,7 @@
                    <Shield class="w-4 h-4 text-teal-400" />
                    <span class="text-sm font-medium text-zinc-300">H.265+ Compression</span>
                  </div>
-                 <button 
+                 <button
                   @click="channelConfig.h265_plus = !channelConfig.h265_plus"
                   class="w-10 h-5 rounded-full transition-colors relative"
                   :class="channelConfig.h265_plus ? 'bg-teal-500' : 'bg-zinc-700'"
@@ -154,7 +152,7 @@
                    <Construction class="w-4 h-4 text-amber-400" />
                    <span class="text-sm font-medium text-zinc-300">Motion Detection</span>
                  </div>
-                 <button 
+                 <button
                   @click="channelConfig.motion_detect = !channelConfig.motion_detect"
                   class="w-10 h-5 rounded-full transition-colors relative"
                   :class="channelConfig.motion_detect ? 'bg-teal-500' : 'bg-zinc-700'"
@@ -167,7 +165,7 @@
 
           <!-- Save Footer -->
           <div class="p-6 border-t border-white/5 bg-white/[0.02] flex justify-end">
-            <button 
+            <button
               @click="handleSave"
               :disabled="liveStore.loading.update"
               class="px-8 py-3 bg-teal-500 text-zinc-950 font-black uppercase text-xs tracking-widest rounded-xl hover:bg-teal-400 transition-all disabled:opacity-50 flex items-center gap-2"
@@ -222,11 +220,11 @@ watch(() => props.isOpen, async (val) => {
     loadingStream.value = true
     await liveStore.fetchConfig(props.deviceId, props.channel.id)
     await liveStore.fetchCapabilities(props.deviceId, props.channel.id)
-    
+
     if (liveStore.channelConfig) {
       channelConfig.value = JSON.parse(JSON.stringify(liveStore.channelConfig))
     }
-    
+
     // Start Stream and Heartbeat
     initPlayer()
     startHeartbeat()
@@ -238,12 +236,12 @@ watch(() => props.isOpen, async (val) => {
 
 function initPlayer() {
   if (!videoRef.value || !props.channel) return
-  
+
   // Fetch dynamic HLS URL from backend
   liveStore.startStream(props.deviceId, props.channel.id).then((res: any) => {
     if (res.status === 'ok' && res.hls_url) {
       const hlsUrl = `${API_CONFIG.BASE_URL}${res.hls_url}`
-      
+
       if (Hls.isSupported()) {
         hlsInstance = new Hls({
           enableWorker: true,
@@ -252,7 +250,7 @@ function initPlayer() {
         })
         hlsInstance.loadSource(hlsUrl)
         hlsInstance.attachMedia(videoRef.value!)
-        
+
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
           videoRef.value?.play().catch(() => {
             console.log("Autoplay blocked, user interaction required")

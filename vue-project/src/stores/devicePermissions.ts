@@ -128,7 +128,8 @@ export const useDevicePermissionsStore = defineStore('devicePermissions', () => 
     async function syncAllUsers(deviceId: number | string) {
         loading.value.syncAll = true
         try {
-            await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/user/syncall`, { method: 'POST' })
+            const url = `${API_CONFIG.BASE_URL}/api/device/${deviceId}/user/syncall`
+            await apiFetch(url, { method: 'POST' })
         } finally {
             loading.value.syncAll = false
         }

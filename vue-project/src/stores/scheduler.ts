@@ -7,7 +7,7 @@ export interface Channel {
   device_id: number
   id: number
   channel_no: number
-  channel_name: string
+  name: string
   schedule_enable?: boolean
 }
 
@@ -23,7 +23,7 @@ export interface RecordingModeResponse {
   device_id: number
   channel_id: number
   channel_no: number
-  channel_name: string
+  name: string
   schedule_enable: boolean
   default_mode: string
   timeline: TimeParams[]
@@ -37,6 +37,7 @@ export const useSchedulerStore = defineStore('scheduler', () => {
     channels: false,
     mode: false,
     sync: false,
+    syncAll: false,
   })
 
   // Mode Colors & Labels
@@ -57,8 +58,11 @@ export const useSchedulerStore = defineStore('scheduler', () => {
       const data = await apiFetch(`${API_CONFIG.BASE_URL}/api/devices/${deviceId}/channels`)
       // Backend returns list of channels directly?
       // Assuming response is [ { channel_id, ... }, ... ] based on planPhase2
+      console.log('[fetchChannels] raw data:', data)
+      console.log('[fetchChannels] type:', typeof data)
+      console.log('[fetchChannels] isArray:', Array.isArray(data))
       if (Array.isArray(data)) {
-        channels.value = data
+        channels.value = data.sort((a, b) => a.channel_no - b.channel_no)
       }
     } finally {
       loading.value.channels = false
@@ -96,6 +100,18 @@ export const useSchedulerStore = defineStore('scheduler', () => {
     }
   }
 
+  async function syncAllRecordingModes(deviceId: number | string) {
+    loading.value.syncAll = true
+    try {
+      await apiFetch(`${API_CONFIG.BASE_URL}/api/device/${deviceId}/channels/recording-mode/sync`, {
+        method: 'POST',
+      })
+      await fetchChannels(deviceId)
+    } finally {
+      loading.value.syncAll = false
+    }
+  }
+
   return {
     channels,
     channelModes,
@@ -105,5 +121,6 @@ export const useSchedulerStore = defineStore('scheduler', () => {
     fetchChannels,
     fetchRecordingMode,
     syncRecordingMode,
+    syncAllRecordingModes,
   }
 })

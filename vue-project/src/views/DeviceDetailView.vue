@@ -80,16 +80,17 @@
               Sync {{ tabs.find((t) => t.id === activeTab)?.label }}
             </button>
 
-            <!-- Sync All Users Special Button -->
+            <!-- Scheduler Sync Button -->
             <button
-              v-if="activeTab === 'users'"
-              @click="handleSyncAllUsers"
-              :disabled="permStore.loading.syncAll"
-              class="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-white/10 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
+               v-if="activeTab === 'scheduler'"
+               @click="handleSyncAllSchedules"
+               :disabled="schedulerStore.loading.syncAll"
+               class="flex items-center gap-2 px-4 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/30 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
             >
-              <Users class="w-4 h-4" />
-              Sync All Users
+               <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': schedulerStore.loading.syncAll }" />
+               Sync All Schedules
             </button>
+
           </div>
         </div>
 
@@ -347,6 +348,8 @@
                   <option :value="50">50</option>
                   <option :value="100">100</option>
                   <option :value="500">500</option>
+                  <option :value="1000">1000</option>
+                  <option :value="2000">2000</option>
                 </select>
               </div>
               <button
@@ -456,7 +459,7 @@
 
                 <div class="text-center relative z-10">
                   <p class="font-bold text-zinc-300 group-hover:text-white transition-colors">
-                    {{ channel.channel_name || channel.channel_no }}
+                    {{ channel.channel_no||  channel.name }}
                   </p>
                   <p class="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
                     CH {{ channel.channel_no }}
@@ -513,7 +516,7 @@
                     "
                   >
                     <span class="truncate">{{
-                      channel.channel_name || channel.channel_no
+                      channel.name || channel.channel_no
                     }}</span>
                     <Clock class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
@@ -734,7 +737,7 @@ const isLoading = computed(() => {
     case 'integration':
       return detailStore.loading.onvif
     case 'users':
-      return detailStore.loading.users
+      return detailStore.loading.users || permStore.loading.syncAll
     case 'logs':
       return logsStore.loading
     case 'scheduler':
@@ -800,7 +803,10 @@ const handleSync = async () => {
     if (activeTab.value === 'info') await detailStore.syncSystemInfo(deviceId)
     else if (activeTab.value === 'storage') await detailStore.syncStorage(deviceId)
     else if (activeTab.value === 'integration') await detailStore.syncOnvifUsers(deviceId)
-    else if (activeTab.value === 'users') await detailStore.syncDeviceUsers(deviceId)
+    else if (activeTab.value === 'users') {
+      await permStore.syncAllUsers(deviceId)
+      await detailStore.fetchDeviceUsers(deviceId)
+    }
     else if (activeTab.value === 'scheduler') {
       if (selectedChannelId.value) {
         await schedulerStore.syncRecordingMode(deviceId, selectedChannelId.value)
@@ -810,10 +816,18 @@ const handleSync = async () => {
       }
     }
 
-
     notify('Synced', 'Data updated from device', 'success')
   } catch (e) {
     notify('Error', 'Failed to sync data', 'error')
+  }
+}
+
+const handleSyncAllSchedules = async () => {
+  try {
+    await schedulerStore.syncAllRecordingModes(deviceId)
+    notify('Success', 'All schedules synced', 'success')
+  } catch (e: any) {
+    notify('Error', e.message || 'Sync failed', 'error')
   }
 }
 // Date helpers for Input
@@ -869,7 +883,7 @@ function getDaySegments(channelId: number, dayIndex: number) {
   if (!data || !data.timeline) return []
 
   const dayName = schedulerStore.DAYS[dayIndex]
-  
+
   return data.timeline
     .filter((t) => t.day_start === dayName)
     .map((t) => {
@@ -877,12 +891,12 @@ function getDaySegments(channelId: number, dayIndex: number) {
       // Determine if this segment ends at the start of the NEXT day
       const isNextDay = t.day_end !== t.day_start
       const endSec = timeToSeconds(t.time_end, isNextDay || t.time_end === '00:00:00')
-      
+
       const totalSec = 86400
 
       const startPct = (startSec / totalSec) * 100
       let widthPct = ((endSec - startSec) / totalSec) * 100
-      
+
       // Clamp width
       if (widthPct > 100) widthPct = 100
 
@@ -924,16 +938,6 @@ function openPermissionModal(user: any) {
   showPermModal.value = true
 }
 
-async function handleSyncAllUsers() {
-  try {
-    await permStore.syncAllUsers(deviceId)
-    // Refresh users list
-    await detailStore.fetchDeviceUsers(deviceId)
-    notify('Synced', 'All users and permissions synced', 'success')
-  } catch (e) {
-    notify('Error', 'Failed to sync all users', 'error')
-  }
-}
 </script>
 
 <style scoped>

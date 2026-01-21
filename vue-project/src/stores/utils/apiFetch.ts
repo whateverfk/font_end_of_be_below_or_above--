@@ -2,6 +2,11 @@ function getToken() {
   return localStorage.getItem('token')
 }
 
+function handleUnauthorized() {
+  localStorage.removeItem('token')
+  window.location.href = '/login'
+}
+
 export async function apiFetch(url: string, options: RequestInit = {}) {
   const token = getToken()
 
@@ -15,6 +20,10 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   })
 
   if (!res.ok) {
+    if (res.status === 401) {
+      handleUnauthorized()
+      throw new Error('Unauthorized - Redirecting to login')
+    }
     const errorText = await res.text()
     throw new Error(errorText || 'API error')
   }

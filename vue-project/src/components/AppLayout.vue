@@ -7,9 +7,9 @@
     >
       <div class="p-6 flex items-center gap-3 overflow-hidden">
         <div class="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center shrink-0">
-          <Camera class="w-5 h-5 text-white" />
+          <ScanEye class="w-5 h-5 text-white" />
         </div>
-        <span v-if="!isCollapsed" class="font-bold text-xl tracking-tight">VisionPro</span>
+        <span v-if="!isCollapsed" class="font-bold text-xl tracking-tight"> Nope </span>
       </div>
 
       <nav class="flex-1 px-3 space-y-1 mt-6">
@@ -92,6 +92,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import {
   Camera,
+  ScanEye,
   LayoutDashboard,
   Bell,
   RefreshCw,
@@ -109,7 +110,7 @@ const isCollapsed = ref(false)
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Monitoring', path: '/monitor', icon: Monitor },
+  { name: 'Record status', path: '/monitor', icon: Monitor },
   { name: 'Alarms', path: '/alarms', icon: Bell },
   { name: 'Sync Settings', path: '/sync', icon: RefreshCw },
   { name: 'User Profile', path: '/profile', icon: User },
