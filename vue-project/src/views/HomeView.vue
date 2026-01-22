@@ -262,13 +262,22 @@
                 class="block text-[10px] font-black uppercase text-zinc-600 tracking-widest mb-2 ml-1"
                 >Access Token / Password</label
               >
-              <input
-                v-model="form.password"
-                :required="!isEditMode"
-                type="password"
-                class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 text-sm focus:outline-none focus:border-teal-500/50"
-                
-              />
+              <div class="relative">
+                <input
+                  v-model="form.password"
+                  :required="!isEditMode"
+                  :type="showPassword ? 'text' : 'password'"
+                  class="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-5 pr-12 text-sm focus:outline-none focus:border-teal-500/50"
+                />
+                <button
+                  type="button"
+                  @click="showPassword = !showPassword"
+                  class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-teal-400 transition-colors"
+                >
+                  <Eye v-if="!showPassword" class="w-4 h-4" />
+                  <EyeOff v-else class="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <div class="col-span-2">
               <label
@@ -321,6 +330,8 @@ import {
   AlertCircle,
   X,
   Loader2,
+  Eye,
+  EyeOff,
 } from 'lucide-vue-next'
 
 onMounted(() => {
@@ -336,6 +347,7 @@ const isEditMode = ref(false)
 const currentEditId = ref<number | string | null>(null)
 const submitting = ref(false)
 const searchQuery = ref('')
+const showPassword = ref(false)
 
 const filteredDevices = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
@@ -362,6 +374,7 @@ const form = reactive({
 const openAddModal = () => {
   isEditMode.value = false
   currentEditId.value = null
+  showPassword.value = false
   Object.assign(form, { ipNvr: '', ipWeb: '', username: '', password: '', brand: 'HIKVision' })
   showModal.value = true
 }
@@ -369,6 +382,7 @@ const openAddModal = () => {
 const openEditModal = (device: any) => {
   isEditMode.value = true
   currentEditId.value = device.id
+  showPassword.value = false
   Object.assign(form, { ...device, password: '' }) // Clear password for security/UI
   showModal.value = true
 }

@@ -1,9 +1,12 @@
+import { useAuthStore } from '@/stores/auth'
+
 function getToken() {
   return localStorage.getItem('token')
 }
 
 function handleUnauthorized() {
-  localStorage.removeItem('token')
+  const authStore = useAuthStore()
+  authStore.logout()
   window.location.href = '/#/login'
 }
 

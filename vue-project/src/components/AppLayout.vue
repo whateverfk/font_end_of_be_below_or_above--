@@ -9,7 +9,7 @@
         <div class="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center shrink-0">
           <ScanEye class="w-5 h-5 text-white" />
         </div>
-        <span v-if="!isCollapsed" class="font-bold text-xl tracking-tight"> Nope </span>
+        <span v-if="!isCollapsed" class="font-bold text-xl tracking-tight"> N </span>
       </div>
 
       <nav class="flex-1 px-3 space-y-1 mt-6">
