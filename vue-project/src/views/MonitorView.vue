@@ -140,6 +140,34 @@
             </div>
           </div>
 
+          <!-- Tab Navigation -->
+          <div class="flex gap-2 mb-6 p-1 bg-zinc-950/50 rounded-xl border border-white/5">
+            <button
+              @click="activeModalTab = 'segments'"
+              class="flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
+              :class="
+                activeModalTab === 'segments'
+                  ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+              "
+            >
+              <Clock class="w-4 h-4" />
+              Detected Segments ({{ selectedDay.ranges.length }})
+            </button>
+            <button
+              @click="activeModalTab = 'timeloss'"
+              class="flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
+              :class="
+                activeModalTab === 'timeloss'
+                  ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+              "
+            >
+              <AlertTriangle class="w-4 h-4" />
+              Time Loss ({{ timeLossData.length }})
+            </button>
+          </div>
+
           <!-- 24h Timeline Ruler -->
           <div
             class="relative pt-10 pb-6 mb-8 px-4 bg-zinc-950/30 rounded-3xl border border-white/5"
@@ -185,7 +213,8 @@
             </div>
           </div>
 
-          <div class="space-y-4">
+          <!-- Tab Content: Detected Segments -->
+          <div v-if="activeModalTab === 'segments'" class="space-y-4">
             <div class="flex items-center justify-between px-2">
               <span class="text-xs font-black uppercase tracking-widest text-zinc-600"
                 >Detected Segments ({{ selectedDay.ranges.length }})</span
@@ -205,6 +234,43 @@
                 <div class="flex items-center gap-3">
                   <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
                   <span class="text-sm font-mono text-zinc-300">{{ range.label }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content: Time Loss -->
+          <div v-else-if="activeModalTab === 'timeloss'" class="space-y-4">
+            <div class="flex items-center justify-between px-2">
+              <span class="text-xs font-black uppercase tracking-widest text-zinc-600"
+                >Time Loss / Gaps ({{ timeLossData.length }})</span
+              >
+              <span class="text-[10px] text-zinc-500 italic"
+                >Recording gaps detected</span
+              >
+            </div>
+            
+            <div v-if="timeLossData.length === 0" class="text-center py-12 bg-white/[0.02] border border-white/5 rounded-2xl border-dashed">
+              <Clock class="w-12 h-12 mx-auto text-emerald-500/50 mb-4" />
+              <p class="text-emerald-400 font-bold">No time loss detected!</p>
+              <p class="text-xs text-zinc-500 mt-2">Recording is continuous for this day.</p>
+            </div>
+
+            <div
+              v-else
+              class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto custom-scrollbar pr-2"
+            >
+              <div
+                v-for="(gap, idx) in timeLossData"
+                :key="idx"
+                class="flex flex-col p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 group hover:bg-amber-500/10 hover:border-amber-500/30 transition-all"
+              >
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                  <span class="text-sm font-mono text-zinc-300">{{ gap.label }}</span>
+                </div>
+                <div class="pl-5">
+                  <span class="text-xs font-black text-amber-400 uppercase tracking-wider">Duration: {{ gap.duration }}</span>
                 </div>
               </div>
             </div>
@@ -297,6 +363,7 @@ import {
   Clock,
   X,
   Play,
+  AlertTriangle,
 } from 'lucide-vue-next'
 
 const notify =
@@ -308,7 +375,8 @@ const monitorStore = useMonitorStore()
 const selectedDevice = ref<any>(null)
 const currentDate = ref(new Date())
 const showConfig = ref(false)
-const selectedDay = ref<{ channel: string; day: number; ranges: any[] } | null>(null)
+const selectedDay = ref<{ channel: string; day: number; ranges: any[]; rawRanges: any[] } | null>(null)
+const activeModalTab = ref<'segments' | 'timeloss'>('segments')
 
 // Config Form
 const configForm = ref({
@@ -494,8 +562,80 @@ const openTimeRanges = (channelData: ChannelData, day: number) => {
     channel: channelData.channel.name || `CH ${channelData.channel.channel_no}`,
     day: day,
     ranges: processedRanges,
+    rawRanges: sortedRanges,
   }
+  
+  // Reset tab to segments when opening modal
+  activeModalTab.value = 'segments'
 }
+
+// Compute time loss (gaps between segments)
+const timeLossData = computed(() => {
+  if (!selectedDay.value || !selectedDay.value.rawRanges) {
+    return []
+  }
+
+  const ranges = selectedDay.value.rawRanges
+  const gaps: any[] = []
+
+  // Helper to format duration
+  const formatDuration = (seconds: number) => {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    
+    const parts = []
+    if (h > 0) parts.push(`${h}h`)
+    if (m > 0) parts.push(`${m}m`)
+    if (s > 0) parts.push(`${s}s`)
+    
+    return parts.length > 0 ? parts.join(' ') : '0s'
+  }
+
+  // Check gap from start of day (00:00:00) to first segment
+  if (ranges.length > 0) {
+    const firstStart = timeToSeconds(ranges[0]!.start_time)
+    if (firstStart > 0) {
+      gaps.push({
+        label: `00:00:00 - ${parseTimeStr(ranges[0]!.start_time)}`,
+        duration: formatDuration(firstStart),
+        durationSec: firstStart,
+      })
+    }
+  }
+
+  // Check gaps between consecutive segments
+  for (let i = 0; i < ranges.length - 1; i++) {
+    const currentEnd = timeToSeconds(ranges[i]!.end_time)
+    const nextStart = timeToSeconds(ranges[i + 1]!.start_time)
+    
+    if (nextStart > currentEnd) {
+      const gapDuration = nextStart - currentEnd
+      gaps.push({
+        label: `${parseTimeStr(ranges[i]!.end_time)} - ${parseTimeStr(ranges[i + 1]!.start_time)}`,
+        duration: formatDuration(gapDuration),
+        durationSec: gapDuration,
+      })
+    }
+  }
+
+  // Check gap from last segment to end of day (23:59:59 = 86399 seconds)
+  if (ranges.length > 0) {
+    const lastEnd = timeToSeconds(ranges[ranges.length - 1]!.end_time)
+    const dayEnd = 86399 // 23:59:59
+    
+    if (lastEnd < dayEnd) {
+      const gapDuration = dayEnd - lastEnd
+      gaps.push({
+        label: `${parseTimeStr(ranges[ranges.length - 1]!.end_time)} - 23:59:59`,
+        duration: formatDuration(gapDuration),
+        durationSec: gapDuration,
+      })
+    }
+  }
+
+  return gaps
+})
 
 const saveConfig = async () => {
   if (configForm.value.start_day > configForm.value.end_day) {

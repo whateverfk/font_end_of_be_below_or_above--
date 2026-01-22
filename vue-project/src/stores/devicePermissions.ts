@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { API_CONFIG } from '../config'
+import { API_CONFIG } from '../../public/config'
 import { apiFetch } from '@/stores/utils/apiFetch'
 
 export interface PermissionScope {

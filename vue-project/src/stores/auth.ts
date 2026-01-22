@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { API_CONFIG } from '../config'
+import { API_CONFIG } from '../../public/config'
 import { decodeJwt } from '@/stores/utils/jwt'
 
 function mapUserFromJwt(decoded: any) {
