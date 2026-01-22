@@ -184,7 +184,7 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted, computed } from 'vue'
 import { useLiveStore } from '@/stores/live'
-import { API_CONFIG } from '@/config'
+import { API_CONFIG } from '../../../public/config'
 import { X, Monitor, Play, Loader2, Settings, Maximize2, RefreshCw, Shield, Construction, Save } from 'lucide-vue-next'
 // @ts-ignore
 import Hls from 'https://cdn.jsdelivr.net/npm/hls.js@1/+esm'
